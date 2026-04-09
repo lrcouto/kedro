@@ -269,8 +269,12 @@ class _ProjectLogging(UserDict):
 
         msg = f"Using '{path!s}' as logging configuration. " + msg
 
-        # Load and apply the logging configuration
-        logging_config = Path(path).read_text(encoding="utf-8")
+        resolved_path = Path(path).resolve()
+        if not resolved_path.is_file():
+            raise FileNotFoundError(
+                f"Logging configuration file not found: '{path}'"
+            )
+        logging_config = resolved_path.read_text(encoding="utf-8")
         self.configure(yaml.safe_load(logging_config))
         logger.info(msg)
 
