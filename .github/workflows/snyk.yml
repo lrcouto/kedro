@@ -38,16 +38,20 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[test]" || pip install -e .
 
+      - name: Generate requirements.txt for Snyk
+        run: pip freeze > requirements.txt
+
       - name: Run Snyk to check for dependency vulnerabilities
         uses: snyk/actions/python@master
         continue-on-error: true  # upload results even if vulnerabilities are found
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high --sarif-file-output=snyk-oss.sarif
+          args: --file=requirements.txt --severity-threshold=high --sarif-file-output=snyk-oss.sarif
 
       - name: Upload OSS scan results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-oss.sarif') != ''
         with:
           sarif_file: snyk-oss.sarif
           category: snyk-oss
