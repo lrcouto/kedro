@@ -258,6 +258,10 @@ class _ProjectLogging(UserDict):
         msg = ""
 
         if user_logging_path:
+            if ".." in Path(user_logging_path).parts:
+                raise ValueError(
+                    f"Path traversal not allowed in KEDRO_LOGGING_CONFIG: '{user_logging_path}'"
+                )
             path = user_logging_path
 
         elif project_logging_path is not None:
@@ -270,11 +274,15 @@ class _ProjectLogging(UserDict):
         msg = f"Using '{path!s}' as logging configuration. " + msg
 
         resolved_path = Path(path).resolve()
-        if not resolved_path.is_file():
-            raise FileNotFoundError(
-                f"Logging configuration file not found: '{path}'"
+        if resolved_path.suffix.lower() not in {".yml", ".yaml"}:
+            raise ValueError(
+                f"Logging configuration file must be a YAML file (.yml or .yaml): '{path}'"
             )
-        logging_config = resolved_path.read_text(encoding="utf-8")
+        if not resolved_path.is_file():
+            raise FileNotFoundError(f"Logging configuration file not found: '{path}'")
+        # KEDRO_LOGGING_CONFIG is an operator-set environment variable, not end-user input.
+        # Reading from it is intentional; extension validation above limits the attack surface.
+        logging_config = resolved_path.read_text(encoding="utf-8")  # noqa: S604
         self.configure(yaml.safe_load(logging_config))
         logger.info(msg)
 
