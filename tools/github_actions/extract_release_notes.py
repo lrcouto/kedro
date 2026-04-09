@@ -1,9 +1,17 @@
 import sys
+from pathlib import Path
 
 ARGUMENT_COUNT = 3
 
 def extract_section(filename, heading):
-    with open(filename) as file:
+    if ".." in Path(filename).parts:
+        raise ValueError(f"Path traversal not allowed: '{filename}'")
+    resolved = Path(filename).resolve()
+    if resolved.suffix.lower() not in {".md", ".rst", ".txt"}:
+        raise ValueError(f"File must be a .md, .rst, or .txt file: '{filename}'")
+    if not resolved.is_file():
+        raise FileNotFoundError(f"File not found: '{filename}'")
+    with open(resolved) as file:
         lines = file.readlines()
 
     start_line, end_line = None, None
